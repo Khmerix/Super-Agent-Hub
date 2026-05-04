@@ -1,0 +1,137 @@
+:root {
+    --bg: #0f1115;
+    --panel: #161a21;
+    --accent: #00d4aa;
+    --accent-dim: #008f6e;
+    --text: #e0e6f1;
+    --text-dim: #8a94a8;
+    --border: #2a3040;
+    --error: #ff4757;
+    --idle: #747d8c;
+    --thinking: #ffa502;
+    --working: #2ed573;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+}
+
+.container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+
+header { text-align: center; margin-bottom: 2rem; }
+header h1 { font-size: 2rem; color: var(--accent); }
+header p { color: var(--text-dim); margin-top: 0.25rem; }
+
+section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+section h2 {
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Agent cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+.card .name { font-weight: 600; font-size: 1rem; }
+.card .desc { font-size: 0.8rem; color: var(--text-dim); margin: 0.25rem 0 0.5rem; }
+.card .status {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: var(--idle);
+    color: var(--bg);
+}
+.card .status.idle { background: var(--idle); }
+.card .status.thinking { background: var(--thinking); color: #000; }
+.card .status.working { background: var(--working); color: #000; }
+.card .status.error { background: var(--error); }
+.card .stats { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.5rem; }
+
+/* Task form */
+.task-submit input, .task-submit textarea, .task-submit select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    font-family: inherit;
+}
+.task-submit button {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.task-submit button:hover { opacity: 0.85; }
+.task-submit button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Runs list */
+.runs-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.run-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.run-item .run-title { font-weight: 500; }
+.run-item .run-meta { font-size: 0.8rem; color: var(--text-dim); }
+.run-item .run-status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    background: var(--accent-dim);
+    color: #fff;
+}
+.run-item .run-status.COMPLETED { background: var(--working); color: #000; }
+.run-item .run-status.ERROR { background: var(--error); }
+.run-item .run-status.PENDING { background: var(--thinking); color: #000; }
+
+/* Live log */
+.log {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem;
+    height: 240px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+}
+.log .entry { margin-bottom: 0.25rem; opacity: 0.8; }
+.log .entry.new { opacity: 1; animation: flash 0.5s ease; }
+@keyframes flash { from { color: var(--accent); } to { color: var(--text-dim); } }

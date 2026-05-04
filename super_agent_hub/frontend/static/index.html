@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Agent Hub</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 Super Agent Hub</h1>
+            <p>Multi-Agent Orchestration &mdash; Claude + Perplexity</p>
+        </header>
+
+        <section class="agents">
+            <h2>Agent Status</h2>
+            <div id="agent-cards" class="cards">
+                <div class="card loading">Loading agents...</div>
+            </div>
+        </section>
+
+        <section class="task-submit">
+            <h2>Submit Task</h2>
+            <input type="text" id="task-title" placeholder="Task title (e.g. Build auth API)">
+            <textarea id="task-desc" rows="4" placeholder="Describe what you need: research, code, design, debug..."></textarea>
+            <select id="task-priority">
+                <option value="NORMAL">Normal</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
+                <option value="LOW">Low</option>
+            </select>
+            <button id="btn-submit">Submit Task</button>
+        </section>
+
+        <section class="runs">
+            <h2>Active & Recent Runs</h2>
+            <div id="runs-list" class="runs-list">
+                <div class="run-item empty">No runs yet</div>
+            </div>
+        </section>
+
+        <section class="console">
+            <h2>Live Events</h2>
+            <div id="live-log" class="log"></div>
+        </section>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
