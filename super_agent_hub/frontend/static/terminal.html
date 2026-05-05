@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUPER AGENT HUB // TERMINAL</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: #000;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        #terminal {
+            height: 100vh;
+            width: 100vw;
+            padding: 4px;
+        }
+        .xterm-viewport {
+            background: #000 !important;
+        }
+        /* CRT scanline overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 255, 65, 0.025) 2px,
+                rgba(0, 255, 65, 0.025) 4px
+            );
+            z-index: 9999;
+        }
+        /* Subtle screen flicker */
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.995; }
+        }
+        body { animation: flicker 0.15s infinite; }
+    </style>
+</head>
+<body>
+    <div id="terminal"></div>
+    <script>
+        // ── Terminal Setup ───────────────────────────────────────
+        const term = new Terminal({
+            theme: {
+                background: '#000000',
+                foreground: '#00ff41',
+                cursor: '#00ff41',
+                selectionBackground: '#003b00',
+                black: '#000000',
+                green: '#00ff41',
+                brightGreen: '#5fff5f',
+                yellow: '#ffff00',
+                brightYellow: '#ffff5f',
+                red: '#ff0000',
+                brightRed: '#ff5f5f',
+                magenta: '#c084fc',
+                brightMagenta: '#d8b4fe',
+                cyan: '#22d3ee',
+                brightCyan: '#67e8f9',
+                white: '#c0c0c0',
+                brightWhite: '#ffffff'
+            },
+            cursorBlink: true,
+            fontSize: 15,
+            fontFamily: '"Courier New", "SF Mono", "Consolas", monospace',
+            lineHeight: 1.3,
+            scrollback: 5000,
+            allowProposedApi: true,
+            cursorStyle: 'block'
+        });
+
+        term.open(document.getElementById('terminal'));
+        term.focus();
+
+        // ── ANSI Color Codes ─────────────────────────────────────
+        const R  = '\x1b[0m';
+        const G  = '\x1b[32m';
+        const BG = '\x1b[92m';
+        const Y  = '\x1b[33m';
+        const RED= '\x1b[31m';
+        const M  = '\x1b[35m'; // magenta (perplexity)
+        const C  = '\x1b[36m'; // cyan (claude)
+        const D  = '\x1b[2m';  // dim
+        const B  = '\x1b[1m';  // bold
+
+        const now = () => new Date().toLocaleTimeString('en-US', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+        // ── Banner ───────────────────────────────────────────────
+        function printBanner() {
+            term.writeln(`${D}+${'-'.repeat(68)}+${R}`);
+            term.writeln(`${G}  SUPER AGENT HUB v0.2.0${R}  ${D}// Multi-Agent Orchestration${R}`);
+            term.writeln(`${D}  Claude (code) + Perplexity (research) + SQLite Flight Recorder${R}`);
+            term.writeln(`${D}+${'-'.repeat(68)}+${R}`);
+            term.writeln(`${D}  Type 'help' for commands  |  / for dashboard  |  Ctrl+C to cancel${R}`);
+            term.writeln('');
+        }
+        printBanner();
+
+        // ── WebSocket ────────────────────────────────────────────
+        const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${proto}//${window.location.host}/ws`;
+        let ws = null;
+        let connected = false;
+
+        function connect() {
+            ws = new WebSocket(wsUrl);
+            ws.onopen = () => {
+                connected = true;
+                printStatus('WS CONNECTED', BG);
+                prompt();
+            };
+            ws.onmessage = (e) => {
+                // Agent chat comes as plain text "[AGENT]: message"
+                // JSON comes from other sources
+                const text = e.data;
+                if (text.startsWith('[') && text.includes(']:')) {
+                    printAgentVoice(text);
+                } else {
+                    try { handleJSON(JSON.parse(text)); }
+                    catch { printLog('ws', text); }
+                }
+            };
+            ws.onclose = () => {
+                connected = false;
+                printStatus('WS DISCONNECTED — retrying in 3s...', Y);
+                setTimeout(connect, 3000);
+            };
+            ws.onerror = () => printStatus('WS ERROR', RED);
+        }
+        connect();
+
+        // ── Print Functions ──────────────────────────────────────
+
+        function printAgentVoice(raw) {
+            const ts = `${D}[${now()}]${R}`;
+            const m = raw.match(/^\[([^\]]+)\]:\s*(.*)$/);
+            if (!m) { term.writeln(`${ts} ${G}${raw}${R}`); return; }
+
+            const voice = m[1], msg = m[2];
+            let color;
+            switch(voice) {
+                case 'BOSS':       color = Y; break;
+                case 'PERPLEXITY': color = M; break;
+                case 'CLAUDE':     color = C; break;
+                case 'SYSTEM':     color = BG; break;
+                default:           color = D;
+            }
+            term.writeln(`${ts} ${color}[${voice}]${R} ${msg}${R}`);
+        }
+
+        function printStatus(msg, color) {
+            term.writeln(`${D}[${now()}]${R} ${color}[STATUS]${R} ${color}${msg}${R}`);
+        }
+
+        function printLog(level, msg) {
+            const ts = `${D}[${now()}]${R}`;
+            const colors = {ok:BG, err:RED, warn:Y, info:C, agent:M, cmd:G};
+            const c = colors[level] || D;
+            const labels = {ok:'OK', err:'ERR', warn:'WARN', info:'INFO', agent:'AGENT', cmd:'CMD', ws:'WS'};
+            const label = labels[level] || 'LOG';
+            term.writeln(`${ts} ${c}[${label}]${R} ${msg}${R}`);
+        }
+
+        function handleJSON(data) {
+            if (data.type === 'agents') {
+                data.data.forEach(a => printLog('agent', `[${a.agent_id}] ${a.name} :: status=${a.status} exec=${a.executions}`));
+                prompt();
+            } else if (data.type === 'submitted') {
+                printLog('ok', `Task submitted :: run_id=${data.run_id}`);
+                prompt();
+            } else if (data.event) {
+                const rid = data.run_id ? data.run_id.slice(0,6) : '------';
+                const c = data.error ? RED : (data.completed ? BG : C);
+                printLog(data.error?'err':'info', `${c}[${rid}]${R} ${data.event} node=${data.node||'-'}`);
+                if (data.completed) prompt();
+            }
+        }
+
+        // ── Command Input ────────────────────────────────────────
+
+        let buf = '', inputMode = false;
+        const PS = `${G}>>> ${R}`;
+
+        function prompt() { inputMode = true; term.write(PS); }
+
+        term.onKey(({ key, domEvent: e }) => {
+            if (e.keyCode === 13) { // Enter
+                term.writeln('');
+                const cmd = buf.trim(); buf = '';
+                if (cmd) handleCommand(cmd); else prompt();
+                return;
+            }
+            if (e.keyCode === 8) { // Backspace
+                if (buf.length) { buf = buf.slice(0,-1); term.write('\b \b'); }
+                return;
+            }
+            if (e.ctrlKey && e.keyCode === 67) { // Ctrl+C
+                buf = ''; term.writeln('^C'); prompt(); return;
+            }
+            if (key && !e.ctrlKey && !e.altKey && e.key.length === 1) {
+                buf += key; term.write(key);
+            }
+        });
+
+        // ── Command Router ───────────────────────────────────────
+
+        async function handleCommand(cmd) {
+            const [action, ...args] = cmd.split(' ');
+            switch(action.toLowerCase()) {
+
+                case 'help': case '?':
+                    const cmds = [
+                        ['submit "TITLE" "DESC" [PRI]', 'Submit a task to the hub'],
+                        ['status',                    'Query agent status via WS'],
+                        ['agents',                    'Fetch agents via REST'],
+                        ['task <run_id>',             'Get task status'],
+                        ['trace <run_id>',            'Full execution trace'],
+                        ['revert <run_id>',           'Roll back to previous checkpoint'],
+                        ['checkpoints <run_id>',      'List revert checkpoints'],
+                        ['clear',                     'Clear screen + banner'],
+                        ['connect',                   'Reconnect WebSocket'],
+                        ['whoami',                    'Show system info'],
+                        ['quit',                      'Exit terminal'],
+                    ];
+                    term.writeln(`${C}Available Commands:${R}`);
+                    cmds.forEach(([c,d]) => term.writeln(`  ${G}${c.padEnd(32)}${R} ${D}${d}${R}`));
+                    prompt(); break;
+
+                case 'submit': {
+                    const m = cmd.match(/submit\s+"([^"]+)"\s+"([^"]+)"(?:\s+(\w+))?/);
+                    if (!m) { printLog('err', 'Usage: submit "Title" "Description" [NORMAL|HIGH|CRITICAL|LOW]'); prompt(); break; }
+                    try {
+                        const r = await fetch('/api/tasks', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title:m[1], description:m[2], priority:m[3]||'NORMAL'})});
+                        const d = await r.json();
+                        if (d.run_id) { printLog('ok', `Launched :: run_id=${d.run_id}`); startSSE(d.run_id); }
+                        else printLog('err', `Launch failed: ${d.message||'unknown'}`);
+                    } catch(e) { printLog('err', `Network: ${e.message}`); }
+                    prompt(); break;
+                }
+
+                case 'status':
+                    if (connected) ws.send(JSON.stringify({action:'status'}));
+                    else printLog('err', 'WebSocket disconnected');
+                    break;
+
+                case 'agents': {
+                    try {
+                        const r = await fetch('/api/agents/status');
+                        const d = await r.json();
+                        d.agents.forEach(a => printLog('agent', `[${a.agent_id}] ${a.name} :: ${a.status} | ${a.model}`));
+                    } catch(e) { printLog('err', e.message); }
+                    prompt(); break;
+                }
+
+                case 'task':
+                    if (!args[0]) { printLog('err', 'Usage: task <run_id>'); prompt(); break; }
+                    try {
+                        const r = await fetch(`/api/tasks/${args[0]}`);
+                        const d = await r.json();
+                        d.error ? printLog('err', d.error) : printLog('info', `[${d.run_id}] ${d.title} :: ${d.status}`);
+                    } catch(e) { printLog('err', e.message); }
+                    prompt(); break;
+
+                case 'trace':
+                    if (!args[0]) { printLog('err', 'Usage: trace <run_id>'); prompt(); break; }
+                    try {
+                        const r = await fetch(`/api/runs/${args[0]}/trace`);
+                        const d = await r.json();
+                        printLog('info', `Trace for ${args[0]}:`);
+                        printLog('info', `  checkpoints=${d.checkpoints?.length||0} messages=${d.messages?.length||0} thoughts=${d.thoughts?.length||0}`);
+                        d.checkpoints?.slice(0,8).forEach(cp => term.writeln(`    ${D}#${cp.step_id}${R} step=${cp.step_number} node=${C}${cp.node_name}${R}`));
+                    } catch(e) { printLog('err', e.message); }
+                    prompt(); break;
+
+                case 'revert':
+                    if (!args[0]) { printLog('err', 'Usage: revert <run_id>'); prompt(); break; }
+                    try {
+                        const r = await fetch(`/api/runs/${args[0]}/revert`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({checkpoint_id: 0})});
+                        const d = await r.json();
+                        d.success ? printLog('ok', `REVERTED :: ${args[0]}`) : printLog('err', `Revert failed for ${args[0]}`);
+                    } catch(e) { printLog('err', e.message); }
+                    prompt(); break;
+
+                case 'checkpoints':
+                    if (!args[0]) { printLog('err', 'Usage: checkpoints <run_id>'); prompt(); break; }
+                    try {
+                        const r = await fetch(`/api/runs/${args[0]}/checkpoints`);
+                        const d = await r.json();
+                        printLog('info', `Checkpoints for ${args[0]}: ${d.checkpoints?.length||0} total`);
+                        d.checkpoints?.forEach(cp => term.writeln(`    ${D}#${cp.step_id}${R} step=${cp.step_number} ${C}${cp.node_name}${R} ${D}${cp.created_at?.slice(11,19)||''}${R}`));
+                    } catch(e) { printLog('err', e.message); }
+                    prompt(); break;
+
+                case 'clear': case 'cls':
+                    term.clear(); printBanner(); prompt(); break;
+
+                case 'connect': connect(); break;
+
+                case 'whoami':
+                    printLog('info', 'Super Agent Hub Terminal v0.2.0');
+                    printLog('info', `WS: ${connected?'connected':'disconnected'} | API: ${window.location.origin}`);
+                    prompt(); break;
+
+                case 'quit': case 'exit':
+                    printStatus('Session ended.', BG); break;
+
+                default:
+                    printLog('err', `Unknown: "${action}". Type "help".`);
+                    prompt();
+            }
+        }
+
+        // ── SSE Stream ───────────────────────────────────────────
+
+        function startSSE(runId) {
+            const es = new EventSource(`/api/tasks/${runId}/stream`);
+            es.onmessage = (e) => {
+                try {
+                    const d = JSON.parse(e.data);
+                    if (d.event === 'timeout') { es.close(); return; }
+                    const rid = runId.slice(0,6), c = d.completed?BG:(d.error?RED:C);
+                    printLog(d.error?'err':'info', `${c}[${rid}]${R} ${d.event} :: ${d.node||'-'}`);
+                } catch { printLog('ws', e.data); }
+            };
+            es.onerror = () => es.close();
+        }
+    </script>
+</body>
+</html>

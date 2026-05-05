@@ -1,0 +1,988 @@
+/* ═══════════════════════════════════════════════════════════════
+   SUPER AGENT HUB — GLOSSY BLACK 3D CYBERPUNK THEME
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Font Imports (loaded in HTML) ───────────────────────────────
+   Orbitron  → headers, titles
+   Rajdhani  → UI labels, body text
+   Share Tech Mono → console, code, data
+   ────────────────────────────────────────────────────────────── */
+
+/* ── Design Tokens ───────────────────────────────────────────── */
+:root {
+    /* Surface */
+    --void: #030305;
+    --void-light: #0a0a0f;
+    --surface: #111118;
+    --surface-raised: #181822;
+    --glass: rgba(17, 17, 24, 0.65);
+    --glass-border: rgba(168, 85, 247, 0.12);
+
+    /* Purple Neon Spectrum */
+    --neon: #a855f7;
+    --neon-bright: #c084fc;
+    --neon-dim: #7e22ce;
+    --neon-dark: #581c87;
+    --neon-glow: rgba(168, 85, 247, 0.4);
+    --neon-glow-strong: rgba(168, 85, 247, 0.7);
+
+    /* Status Colors */
+    --status-idle: #475569;
+    --status-idle-glow: rgba(71, 85, 105, 0.3);
+    --status-thinking: #f59e0b;
+    --status-thinking-glow: rgba(245, 158, 11, 0.4);
+    --status-working: #22c55e;
+    --status-working-glow: rgba(34, 197, 94, 0.4);
+    --status-error: #ef4444;
+    --status-error-glow: rgba(239, 68, 68, 0.4);
+
+    /* Text */
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-dim: #64748b;
+    --text-glow: #e9d5ff;
+
+    /* 3D Button Depth */
+    --btn-depth: 6px;
+    --btn-depth-hover: 10px;
+
+    /* Timing */
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-medium: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Reset & Base ────────────────────────────────────────────── */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: 'Rajdhani', system-ui, sans-serif;
+    background: var(--void);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.5;
+}
+
+/* ── Atmospheric Background ──────────────────────────────────── */
+#bg-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(168, 85, 247, 0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 60%);
+}
+
+/* ── App Layout ────────────────────────────────────────────────── */
+.app {
+    position: relative;
+    z-index: 2;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* ── Hero Header ──────────────────────────────────────────────── */
+.hero {
+    text-align: center;
+    padding: 2rem 0 1rem;
+    position: relative;
+}
+
+.hero-badge {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: var(--neon);
+    border: 1px solid var(--neon);
+    padding: 0.35rem 0.9rem;
+    border-radius: 2px;
+    margin-bottom: 1.25rem;
+    text-shadow: 0 0 8px var(--neon-glow);
+    animation: badgePulse 3s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% { opacity: 0.7; box-shadow: 0 0 6px var(--neon-glow); }
+    50% { opacity: 1; box-shadow: 0 0 16px var(--neon-glow-strong); }
+}
+
+.hero-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.3em;
+    flex-wrap: wrap;
+}
+
+.glitch {
+    position: relative;
+    color: var(--text-primary);
+    text-shadow:
+        0 0 10px rgba(168, 85, 247, 0.3),
+        0 0 40px rgba(168, 85, 247, 0.1);
+}
+
+.glitch::before,
+.glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0;
+}
+
+.glitch-accent {
+    color: var(--neon);
+    text-shadow:
+        0 0 10px var(--neon-glow),
+        0 0 30px var(--neon-glow),
+        0 0 60px rgba(168, 85, 247, 0.2);
+    position: relative;
+}
+
+.glitch-accent::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    color: var(--neon-bright);
+    filter: blur(12px);
+    opacity: 0.6;
+    z-index: -1;
+}
+
+.hero-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+}
+
+.hero-line {
+    width: 120px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon), transparent);
+    margin: 1.5rem auto 0;
+    opacity: 0.5;
+}
+
+/* ── Main Grid ─────────────────────────────────────────────────── */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 900px) {
+    .grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "agents task"
+            "runs   runs"
+            "console console";
+    }
+    .agents-panel { grid-area: agents; }
+    .task-panel   { grid-area: task; }
+    .runs-panel   { grid-area: runs; }
+    .console-panel{ grid-area: console; }
+}
+
+/* ── Glass Panel Base ────────────────────────────────────────── */
+.panel {
+    position: relative;
+    border-radius: 16px;
+    padding: 1.5rem;
+    overflow: hidden;
+}
+
+.panel-glass {
+    background: var(--glass);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Glossy highlight on glass panels */
+.panel-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.06) 0%,
+        transparent 40%,
+        transparent 60%,
+        rgba(168, 85, 247, 0.03) 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Panel edge glow */
+.panel-glass::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(
+        135deg,
+        rgba(168, 85, 247, 0.3) 0%,
+        transparent 30%,
+        transparent 70%,
+        rgba(168, 85, 247, 0.2) 100%
+    );
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* ── Panel Header ────────────────────────────────────────────── */
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    position: relative;
+    z-index: 1;
+}
+
+.panel-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--neon);
+    filter: drop-shadow(0 0 6px var(--neon-glow));
+}
+
+.panel-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.panel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    flex: 1;
+}
+
+.panel-glow {
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--neon), transparent);
+    border-radius: 1px;
+    opacity: 0.6;
+}
+
+/* ── Agent Cards ─────────────────────────────────────────────── */
+.agent-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.agent-card {
+    position: relative;
+    background: linear-gradient(145deg, var(--surface-raised), var(--surface));
+    border: 1px solid rgba(168, 85, 247, 0.15);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--transition-medium);
+    transform-style: preserve-3d;
+    perspective: 600px;
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.agent-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        transparent 50%
+    );
+    pointer-events: none;
+}
+
+.agent-card:hover {
+    border-color: rgba(168, 85, 247, 0.35);
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(168, 85, 247, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transform: translateY(-2px);
+}
+
+.agent-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--neon-dark), var(--neon-dim));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--neon-bright);
+    text-shadow: 0 0 10px var(--neon-glow);
+    flex-shrink: 0;
+    box-shadow: 0 0 16px var(--neon-glow);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.agent-info { flex: 1; min-width: 0; }
+
+.agent-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.2rem;
+}
+
+.agent-desc {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    line-height: 1.3;
+    margin-bottom: 0.5rem;
+}
+
+.agent-stats {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    display: flex;
+    gap: 0.75rem;
+}
+
+.agent-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.agent-stat-value {
+    color: var(--text-secondary);
+}
+
+/* ── Status Badge ────────────────────────────────────────────── */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    border: 1px solid;
+    transition: var(--transition-fast);
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.status-idle {
+    color: var(--status-idle);
+    border-color: var(--status-idle);
+    background: rgba(71, 85, 105, 0.1);
+}
+.status-idle .status-dot { background: var(--status-idle); box-shadow: 0 0 6px var(--status-idle-glow); }
+
+.status-thinking {
+    color: var(--status-thinking);
+    border-color: var(--status-thinking);
+    background: rgba(245, 158, 11, 0.1);
+}
+.status-thinking .status-dot { background: var(--status-thinking); box-shadow: 0 0 8px var(--status-thinking-glow); animation-duration: 0.6s; }
+
+.status-working {
+    color: var(--status-working);
+    border-color: var(--status-working);
+    background: rgba(34, 197, 94, 0.1);
+}
+.status-working .status-dot { background: var(--status-working); box-shadow: 0 0 8px var(--status-working-glow); animation-duration: 0.8s; }
+
+.status-error {
+    color: var(--status-error);
+    border-color: var(--status-error);
+    background: rgba(239, 68, 68, 0.1);
+}
+.status-error .status-dot { background: var(--status-error); box-shadow: 0 0 8px var(--status-error-glow); }
+
+/* ── 3D Raised Button ───────────────────────────────────────────
+   Extruded box with pseudo-element side faces for depth illusion
+   ───────────────────────────────────────────────────────────── */
+.btn-3d {
+    position: relative;
+    display: inline-block;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    transform-style: preserve-3d;
+    transform: perspective(600px) translateZ(0);
+    transition: transform var(--transition-fast);
+    width: 100%;
+}
+
+/* Main face */
+.btn-face {
+    display: block;
+    position: relative;
+    padding: 0.85rem 1.5rem;
+    background: linear-gradient(
+        145deg,
+        var(--neon) 0%,
+        var(--neon-dim) 50%,
+        var(--neon-dark) 100%
+    );
+    color: #fff;
+    border-radius: 8px;
+    border: 1px solid rgba(192, 132, 252, 0.4);
+    box-shadow:
+        /* Inner glow */
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        /* Neon glow layers */
+        0 0 10px var(--neon-glow),
+        0 0 30px rgba(168, 85, 247, 0.2),
+        0 0 60px rgba(168, 85, 247, 0.1);
+    transition: var(--transition-fast);
+    z-index: 2;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    text-align: center;
+}
+
+/* Side faces for 3D extrusion */
+.btn-side {
+    position: absolute;
+    background: linear-gradient(180deg, var(--neon-dim), var(--neon-dark));
+    z-index: 1;
+    transition: var(--transition-fast);
+}
+
+/* Left side */
+.btn-side-l {
+    top: 4px; left: -2px;
+    width: 4px;
+    height: calc(100% - 8px);
+    transform: skewY(45deg);
+    transform-origin: right;
+    border-radius: 2px 0 0 2px;
+}
+
+/* Right side */
+.btn-side-r {
+    top: 4px; right: -2px;
+    width: 4px;
+    height: calc(100% - 8px);
+    transform: skewY(-45deg);
+    transform-origin: left;
+    border-radius: 0 2px 2px 0;
+}
+
+/* Bottom face */
+.btn-side-b {
+    bottom: -4px; left: 4px;
+    width: calc(100% - 8px);
+    height: 4px;
+    transform: skewX(45deg);
+    transform-origin: top;
+    border-radius: 0 0 2px 2px;
+    background: linear-gradient(90deg, var(--neon-dark), #3b0764);
+}
+
+/* Hover: button rises + glow intensifies */
+.btn-3d:hover {
+    transform: perspective(600px) translateZ(4px);
+}
+
+.btn-3d:hover .btn-face {
+    background: linear-gradient(
+        145deg,
+        var(--neon-bright) 0%,
+        var(--neon) 50%,
+        var(--neon-dim) 100%
+    );
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 20px var(--neon-glow-strong),
+        0 0 50px rgba(168, 85, 247, 0.35),
+        0 0 100px rgba(168, 85, 247, 0.15);
+    border-color: rgba(192, 132, 252, 0.6);
+}
+
+.btn-3d:hover .btn-side-l,
+.btn-3d:hover .btn-side-r {
+    height: calc(100% - 12px);
+    top: 6px;
+}
+
+.btn-3d:hover .btn-side-b {
+    bottom: -6px;
+    height: 6px;
+}
+
+/* Active/Press: button depresses */
+.btn-3d:active {
+    transform: perspective(600px) translateZ(-2px);
+}
+
+.btn-3d:active .btn-face {
+    box-shadow:
+        inset 0 2px 8px rgba(0, 0, 0, 0.4),
+        0 0 6px var(--neon-glow);
+}
+
+/* Disabled state */
+.btn-3d:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.6);
+    opacity: 0.5;
+}
+
+/* ── Form Inputs ─────────────────────────────────────────────── */
+.form-group {
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.form-label {
+    display: block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+}
+
+.form-input {
+    width: 100%;
+    background: linear-gradient(145deg, var(--void-light), var(--surface));
+    border: 1px solid rgba(168, 85, 247, 0.15);
+    color: var(--text-primary);
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    outline: none;
+    transition: var(--transition-fast);
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.3),
+        0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.form-input::placeholder {
+    color: var(--text-dim);
+    opacity: 0.6;
+}
+
+.form-input:focus {
+    border-color: rgba(168, 85, 247, 0.5);
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 0 3px rgba(168, 85, 247, 0.1),
+        0 0 20px rgba(168, 85, 247, 0.08);
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.form-row .half {
+    flex: 1;
+}
+
+select.form-input {
+    appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+}
+
+/* ── Runs List ───────────────────────────────────────────────── */
+.runs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    position: relative;
+    z-index: 1;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.runs-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.runs-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.runs-list::-webkit-scrollbar-thumb {
+    background: var(--neon-dark);
+    border-radius: 2px;
+}
+
+.run-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1.1rem;
+    background: linear-gradient(145deg, rgba(17, 17, 24, 0.8), rgba(10, 10, 15, 0.9));
+    border: 1px solid rgba(168, 85, 247, 0.1);
+    border-radius: 10px;
+    transition: var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+}
+
+.run-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--neon);
+    opacity: 0;
+    transition: var(--transition-fast);
+}
+
+.run-item:hover {
+    border-color: rgba(168, 85, 247, 0.25);
+    background: linear-gradient(145deg, rgba(24, 24, 34, 0.9), rgba(17, 17, 24, 0.95));
+    transform: translateX(4px);
+}
+
+.run-item:hover::before {
+    opacity: 1;
+}
+
+.run-info { min-width: 0; }
+
+.run-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: 0.03em;
+    margin-bottom: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.run-meta {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+}
+
+.run-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid;
+    flex-shrink: 0;
+}
+
+.run-status.PENDING {
+    color: var(--status-thinking);
+    border-color: var(--status-thinking);
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.run-status.RUNNING {
+    color: var(--neon-bright);
+    border-color: var(--neon);
+    background: rgba(168, 85, 247, 0.08);
+    animation: runPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes runPulse {
+    0%, 100% { box-shadow: 0 0 4px rgba(168, 85, 247, 0.2); }
+    50% { box-shadow: 0 0 12px rgba(168, 85, 247, 0.4); }
+}
+
+.run-status.COMPLETED {
+    color: var(--status-working);
+    border-color: var(--status-working);
+    background: rgba(34, 197, 94, 0.08);
+}
+
+.run-status.ERROR {
+    color: var(--status-error);
+    border-color: var(--status-error);
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.run-empty {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* ── Console / Telemetry ──────────────────────────────────────── */
+.console-panel {
+    position: relative;
+    min-height: 280px;
+}
+
+.console-log {
+    position: relative;
+    z-index: 1;
+    height: 220px;
+    overflow-y: auto;
+    padding: 0.75rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    background: linear-gradient(180deg, rgba(3, 3, 5, 0.6), rgba(3, 3, 5, 0.4));
+    border-radius: 10px;
+    border: 1px solid rgba(168, 85, 247, 0.08);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.console-log::-webkit-scrollbar {
+    width: 4px;
+}
+
+.console-log::-webkit-scrollbar-thumb {
+    background: var(--neon-dark);
+    border-radius: 2px;
+}
+
+.log-entry {
+    padding: 0.15rem 0;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+    border-left: 2px solid transparent;
+    padding-left: 0.5rem;
+    margin-left: -0.5rem;
+}
+
+.log-entry.active {
+    opacity: 1;
+    border-left-color: var(--neon);
+    color: var(--text-primary);
+    text-shadow: 0 0 8px rgba(168, 85, 247, 0.2);
+}
+
+.log-entry.error {
+    color: var(--status-error);
+    border-left-color: var(--status-error);
+}
+
+.log-entry.success {
+    color: var(--status-working);
+    border-left-color: var(--status-working);
+}
+
+.log-timestamp {
+    color: var(--text-dim);
+    margin-right: 0.5rem;
+}
+
+/* Scanline overlay */
+.console-scanline {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+    );
+    border-radius: 10px;
+    opacity: 0.5;
+}
+
+/* ── Ghost / Loading Skeleton ────────────────────────────────── */
+.ghost {
+    opacity: 0.5;
+}
+
+.pulse {
+    animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+}
+
+.ghost-line {
+    height: 12px;
+    background: linear-gradient(90deg, var(--surface), var(--surface-raised), var(--surface));
+    background-size: 200% 100%;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+
+.ghost-line.short { width: 60%; }
+
+@keyframes skeletonShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-top: 1px solid rgba(168, 85, 247, 0.1);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+}
+
+.dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 0.4rem;
+}
+
+.dot-green {
+    background: var(--status-working);
+    box-shadow: 0 0 6px var(--status-working-glow);
+    animation: statusPulse 2s ease-in-out infinite;
+}
+
+.dot-red {
+    background: var(--status-error);
+    box-shadow: 0 0 6px var(--status-error-glow);
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.panel {
+    animation: fadeInUp 0.5s ease-out both;
+}
+
+.agents-panel  { animation-delay: 0.05s; }
+.task-panel    { animation-delay: 0.15s; }
+.runs-panel    { animation-delay: 0.25s; }
+.console-panel { animation-delay: 0.35s; }
+
+/* ── Scrollbar Global ────────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: var(--void);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--neon-dark);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--neon-dim);
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    .app { padding: 1rem; }
+    .hero-title { font-size: 2rem; }
+    .form-row { flex-direction: column; }
+    .form-row .half { width: 100%; }
+    .agent-card { flex-direction: column; text-align: center; }
+    .footer { flex-direction: column; gap: 0.5rem; text-align: center; }
+}

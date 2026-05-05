@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUPER AGENT HUB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --void: #030305;
+            --panel: #111118;
+            --glass: rgba(17, 17, 24, 0.75);
+            --glass-border: rgba(168, 85, 247, 0.15);
+            --neon: #a855f7;
+            --neon-bright: #c084fc;
+            --neon-dim: #7e22ce;
+            --neon-glow: rgba(168, 85, 247, 0.4);
+            --text: #e0e6f1;
+            --text-dim: #8a94a8;
+            --green: #22c55e;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--void);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* Animated particle background */
+        #particles {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% 0%, rgba(168,85,247,0.08) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(168,85,247,0.05) 0%, transparent 60%);
+        }
+
+        .app {
+            position: relative; z-index: 2;
+            max-width: 1100px; margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+            display: flex; flex-direction: column; gap: 1.5rem;
+        }
+
+        /* Hero */
+        .hero {
+            text-align: center; padding: 1.5rem 0 0.5rem;
+        }
+        .hero-badge {
+            display: inline-block; font-family: 'Share Tech Mono', monospace;
+            font-size: 0.65rem; letter-spacing: 0.25em; color: var(--neon);
+            border: 1px solid var(--neon); padding: 0.35rem 0.9rem; border-radius: 2px;
+            text-shadow: 0 0 8px var(--neon-glow);
+            animation: badgePulse 3s ease-in-out infinite;
+        }
+        @keyframes badgePulse {
+            0%,100% { opacity: 0.7; box-shadow: 0 0 6px var(--neon-glow); }
+            50% { opacity: 1; box-shadow: 0 0 16px rgba(168,85,247,0.7); }
+        }
+        .hero-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900;
+            line-height: 1.1; letter-spacing: 0.08em;
+            margin: 0.75rem 0 0.25rem;
+            display: flex; justify-content: center; gap: 0.3em; flex-wrap: wrap;
+        }
+        .hero-title span:first-child, .hero-title span:last-child { color: var(--text); text-shadow: 0 0 10px rgba(168,85,247,0.3); }
+        .hero-title span:nth-child(2) { color: var(--neon); text-shadow: 0 0 10px var(--neon-glow), 0 0 30px var(--neon-glow); position: relative; }
+        .hero-title span:nth-child(2)::after { content: attr(data-text); position: absolute; inset: 0; color: var(--neon-bright); filter: blur(12px); opacity: 0.6; z-index: -1; }
+        .hero-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--text-dim); letter-spacing: 0.15em; }
+        .hero-line { width: 120px; height: 1px; background: linear-gradient(90deg, transparent, var(--neon), transparent); margin: 1rem auto 0; opacity: 0.5; }
+
+        /* Grid */
+        .grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+        @media (min-width: 900px) {
+            .grid { grid-template-columns: 1fr 1fr; grid-template-areas: "agents task" "runs console"; }
+            .agents-panel { grid-area: agents; }
+            .task-panel { grid-area: task; }
+            .runs-panel { grid-area: runs; }
+            .console-panel { grid-area: console; }
+        }
+
+        /* Glass Panel */
+        .panel {
+            position: relative; border-radius: 16px; padding: 1.25rem; overflow: hidden;
+            background: var(--glass); backdrop-filter: blur(20px) saturate(1.2);
+            -webkit-backdrop-filter: blur(20px) saturate(1.2);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+            animation: fadeInUp 0.5s ease-out both;
+        }
+        .panel::before {
+            content: ''; position: absolute; inset: 0; border-radius: 16px; pointer-events: none; z-index: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 40%, transparent 60%, rgba(168,85,247,0.03) 100%);
+        }
+        .panel::after {
+            content: ''; position: absolute; inset: -1px; border-radius: 16px; padding: 1px; pointer-events: none; opacity: 0.6;
+            background: linear-gradient(135deg, rgba(168,85,247,0.3) 0%, transparent 30%, transparent 70%, rgba(168,85,247,0.2) 100%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude;
+        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .agents-panel { animation-delay: 0.05s; }
+        .task-panel { animation-delay: 0.15s; }
+        .runs-panel { animation-delay: 0.25s; }
+        .console-panel { animation-delay: 0.35s; }
+
+        /* Panel Header */
+        .panel-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; position: relative; z-index: 1; }
+        .panel-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--neon); filter: drop-shadow(0 0 6px var(--neon-glow)); }
+        .panel-icon svg { width: 20px; height: 20px; }
+        .panel-title { font-family: 'Orbitron', sans-serif; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.12em; color: var(--text); text-transform: uppercase; flex: 1; }
+        .panel-glow { width: 60px; height: 2px; background: linear-gradient(90deg, var(--neon), transparent); border-radius: 1px; opacity: 0.6; }
+
+        /* Agent Cards */
+        .agent-grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; position: relative; z-index: 1; }
+        .agent-card {
+            position: relative; background: linear-gradient(145deg, #181822, #111118);
+            border: 1px solid rgba(168,85,247,0.15); border-radius: 12px; padding: 1rem;
+            display: flex; align-items: center; gap: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+            transition: 0.3s ease;
+        }
+        .agent-card:hover { border-color: rgba(168,85,247,0.35); box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(168,85,247,0.1); transform: translateY(-2px); }
+        .agent-avatar { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #581c87, #7e22ce); display: flex; align-items: center; justify-content: center; font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--neon-bright); text-shadow: 0 0 10px var(--neon-glow); flex-shrink: 0; box-shadow: 0 0 16px var(--neon-glow); border: 1px solid rgba(168,85,247,0.3); }
+        .agent-info { flex: 1; min-width: 0; }
+        .agent-name { font-family: 'Orbitron', sans-serif; font-size: 0.88rem; font-weight: 600; color: var(--text); letter-spacing: 0.03em; }
+        .agent-desc { font-size: 0.72rem; color: var(--text-dim); line-height: 1.3; margin-top: 0.1rem; }
+        .agent-stats { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; color: var(--text-dim); margin-top: 0.4rem; display: flex; gap: 0.6rem; }
+        .status-badge { display: inline-flex; align-items: center; gap: 0.3rem; font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid; }
+        .status-idle { color: #475569; border-color: #475569; background: rgba(71,85,105,0.1); }
+        .status-idle .dot { background: #475569; }
+        .status-working { color: var(--green); border-color: var(--green); background: rgba(34,197,94,0.1); }
+        .status-working .dot { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+        .status-error { color: var(--red); border-color: var(--red); background: rgba(239,68,68,0.1); }
+        .status-error .dot { background: var(--red); }
+        .status-thinking { color: var(--yellow); border-color: var(--yellow); background: rgba(245,158,11,0.1); }
+        .status-thinking .dot { background: var(--yellow); box-shadow: 0 0 6px rgba(245,158,11,0.4); animation: dotPulse 0.6s infinite; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; }
+        @keyframes dotPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        /* 3D Button */
+        .btn-3d { position: relative; display: inline-block; padding: 0; border: none; background: none; cursor: pointer; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; width: 100%; transform-style: preserve-3d; perspective: 600px; }
+        .btn-face { display: block; position: relative; padding: 0.8rem 1.5rem; background: linear-gradient(145deg, var(--neon) 0%, var(--neon-dim) 50%, #3b0764 100%); color: #fff; border-radius: 8px; border: 1px solid rgba(192,132,252,0.4); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 10px var(--neon-glow), 0 0 30px rgba(168,85,247,0.2); transition: 0.15s ease; z-index: 2; text-shadow: 0 0 8px rgba(255,255,255,0.3); text-align: center; }
+        .btn-3d:hover { transform: translateY(-2px); }
+        .btn-3d:hover .btn-face { background: linear-gradient(145deg, var(--neon-bright) 0%, var(--neon) 50%, var(--neon-dim) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 0 20px rgba(168,85,247,0.7), 0 0 50px rgba(168,85,247,0.35); border-color: rgba(192,132,252,0.6); }
+        .btn-3d:active .btn-face { box-shadow: inset 0 2px 8px rgba(0,0,0,0.4), 0 0 6px var(--neon-glow); }
+        .btn-3d:disabled { filter: grayscale(0.6); opacity: 0.5; cursor: not-allowed; }
+
+        /* Form */
+        .form-group { margin-bottom: 0.9rem; position: relative; z-index: 1; }
+        .form-label { display: block; font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.35rem; }
+        .form-input { width: 100%; background: linear-gradient(145deg, #0a0a0f, #111118); border: 1px solid rgba(168,85,247,0.15); color: var(--text); padding: 0.8rem 1rem; border-radius: 10px; font-family: 'Rajdhani', sans-serif; font-size: 0.95rem; font-weight: 500; outline: none; transition: 0.15s ease; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.03); }
+        .form-input::placeholder { color: var(--text-dim); opacity: 0.5; }
+        .form-input:focus { border-color: rgba(168,85,247,0.5); box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 0 0 3px rgba(168,85,247,0.1), 0 0 20px rgba(168,85,247,0.08); }
+        .form-row { display: flex; gap: 1rem; align-items: flex-end; }
+        .half { flex: 1; }
+        select.form-input { appearance: none; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; padding-right: 2.5rem; }
+
+        /* Runs */
+        .runs-list { display: flex; flex-direction: column; gap: 0.5rem; position: relative; z-index: 1; max-height: 260px; overflow-y: auto; padding-right: 0.4rem; }
+        .runs-list::-webkit-scrollbar { width: 4px; }
+        .runs-list::-webkit-scrollbar-thumb { background: var(--neon-dim); border-radius: 2px; }
+        .run-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.8rem 1rem; background: linear-gradient(145deg, rgba(17,17,24,0.8), rgba(10,10,15,0.9)); border: 1px solid rgba(168,85,247,0.1); border-radius: 10px; transition: 0.15s ease; position: relative; }
+        .run-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--neon); opacity: 0; transition: 0.15s ease; border-radius: 10px 0 0 10px; }
+        .run-item:hover { border-color: rgba(168,85,247,0.25); transform: translateX(4px); }
+        .run-item:hover::before { opacity: 1; }
+        .run-title { font-family: 'Orbitron', sans-serif; font-size: 0.78rem; font-weight: 500; color: var(--text); letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .run-meta { font-family: 'Share Tech Mono', monospace; font-size: 0.64rem; color: var(--text-dim); margin-top: 0.15rem; }
+        .run-status { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.2rem 0.45rem; border-radius: 4px; border: 1px solid; flex-shrink: 0; }
+        .run-status.PENDING { color: var(--yellow); border-color: var(--yellow); background: rgba(245,158,11,0.08); }
+        .run-status.RUNNING { color: var(--neon-bright); border-color: var(--neon); background: rgba(168,85,247,0.08); animation: runPulse 1.5s ease-in-out infinite; }
+        @keyframes runPulse { 0%,100%{box-shadow:0 0 4px rgba(168,85,247,0.2)} 50%{box-shadow:0 0 12px rgba(168,85,247,0.4)} }
+        .run-status.COMPLETED { color: var(--green); border-color: var(--green); background: rgba(34,197,94,0.08); }
+        .run-status.ERROR { color: var(--red); border-color: var(--red); background: rgba(239,68,68,0.08); }
+        .run-empty { text-align: center; padding: 2rem; color: var(--text-dim); font-size: 0.8rem; font-style: italic; }
+
+        /* Console */
+        .console-log { position: relative; z-index: 1; height: 200px; overflow-y: auto; padding: 0.75rem; font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; line-height: 1.6; color: var(--text-secondary); background: linear-gradient(180deg, rgba(3,3,5,0.6), rgba(3,3,5,0.4)); border-radius: 10px; border: 1px solid rgba(168,85,247,0.08); box-shadow: inset 0 2px 8px rgba(0,0,0,0.4); }
+        .console-log::-webkit-scrollbar { width: 4px; }
+        .console-log::-webkit-scrollbar-thumb { background: var(--neon-dim); border-radius: 2px; }
+        .log-entry { padding: 0.12rem 0; opacity: 0.7; transition: opacity 0.3s; border-left: 2px solid transparent; padding-left: 0.5rem; margin-left: -0.5rem; }
+        .log-entry.active { opacity: 1; border-left-color: var(--neon); color: var(--text); text-shadow: 0 0 8px rgba(168,85,247,0.2); }
+        .log-entry.error { color: var(--red); border-left-color: var(--red); }
+        .log-entry.success { color: var(--green); border-left-color: var(--green); }
+
+        /* Footer */
+        .footer { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-top: 1px solid rgba(168,85,247,0.1); font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; color: var(--text-dim); letter-spacing: 0.1em; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .app { padding: 1rem; }
+            .hero-title { font-size: 1.6rem; }
+            .form-row { flex-direction: column; }
+            .agent-card { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div id="particles"></div>
+    <div class="app">
+        <header class="hero">
+            <div class="hero-badge">SYSTEM ONLINE</div>
+            <h1 class="hero-title">
+                <span>SUPER</span>
+                <span data-text="AGENT">AGENT</span>
+                <span>HUB</span>
+            </h1>
+            <p class="hero-sub">Multi-Agent Orchestration // Claude + Perplexity</p>
+            <div class="hero-line"></div>
+        </header>
+
+        <main class="grid">
+            <!-- Agent Status Panel -->
+            <section class="panel agents-panel">
+                <div class="panel-header">
+                    <div class="panel-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    </div>
+                    <h2 class="panel-title">Agent Nodes</h2>
+                    <div class="panel-glow"></div>
+                </div>
+                <div id="agent-cards" class="agent-grid"></div>
+            </section>
+
+            <!-- Task Submission Panel -->
+            <section class="panel task-panel">
+                <div class="panel-header">
+                    <div class="panel-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    </div>
+                    <h2 class="panel-title">Dispatch Mission</h2>
+                    <div class="panel-glow"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mission Title</label>
+                    <input type="text" id="task-title" class="form-input" placeholder="e.g. BUILD_AUTH_API" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Directive</label>
+                    <textarea id="task-desc" class="form-input" rows="4" placeholder="Describe: research, code, architecture, debug..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label class="form-label">Priority</label>
+                        <select id="task-priority" class="form-input">
+                            <option value="NORMAL">NORMAL</option>
+                            <option value="HIGH">HIGH</option>
+                            <option value="CRITICAL">CRITICAL</option>
+                            <option value="LOW">LOW</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label class="form-label">&nbsp;</label>
+                        <button id="btn-submit" class="btn-3d"><span class="btn-face">LAUNCH</span></button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Runs Panel -->
+            <section class="panel runs-panel">
+                <div class="panel-header">
+                    <div class="panel-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    </div>
+                    <h2 class="panel-title">Mission Log</h2>
+                    <div class="panel-glow"></div>
+                </div>
+                <div id="runs-list" class="runs-list">
+                    <div class="run-empty">Awaiting mission dispatch...</div>
+                </div>
+            </section>
+
+            <!-- Live Console Panel -->
+            <section class="panel console-panel">
+                <div class="panel-header">
+                    <div class="panel-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                    </div>
+                    <h2 class="panel-title">Telemetry Feed</h2>
+                    <div class="panel-glow"></div>
+                </div>
+                <div id="live-log" class="console-log"></div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div>SYS.VER.0.3.0 // ORCHESTRATOR ACTIVE</div>
+            <div id="conn-status">WS: CONNECTING...</div>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let ws = null;
+        let runs = [];
+
+        // ── Init ────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            initWebSocket();
+            loadAgents();
+            setInterval(loadAgents, 3000);
+            document.getElementById('btn-submit').addEventListener('click', submitTask);
+        });
+
+        // ── WebSocket ────────────────────────────────────────────
+        function initWebSocket() {
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${proto}//${window.location.host}/ws`);
+            ws.onopen = () => {
+                document.getElementById('conn-status').textContent = 'WS: CONNECTED';
+                document.getElementById('conn-status').style.color = '#22c55e';
+                log('WebSocket connected', 'success');
+                ws.send(JSON.stringify({ action: 'status' }));
+            };
+            ws.onmessage = (evt) => {
+                const msg = JSON.parse(evt.data);
+                if (msg.type === 'agents') renderAgents(msg.data);
+                else if (msg.event) {
+                    const c = msg.error ? 'error' : (msg.completed ? 'success' : 'active');
+                    log(`[${msg.event}] run=${msg.run_id?.slice(0,6)||'-'} node=${msg.node||'-'}`, c);
+                    if (msg.completed) loadRuns();
+                }
+            };
+            ws.onclose = () => {
+                document.getElementById('conn-status').textContent = 'WS: DISCONNECTED';
+                document.getElementById('conn-status').style.color = '#ef4444';
+                setTimeout(initWebSocket, 3000);
+            };
+        }
+
+        // ── Agents ───────────────────────────────────────────────
+        async function loadAgents() {
+            try {
+                const r = await fetch(`${API_BASE}/api/agents/status`);
+                const d = await r.json();
+                renderAgents(d.agents);
+            } catch (e) { console.error(e); }
+        }
+
+        function renderAgents(agents) {
+            const el = document.getElementById('agent-cards');
+            if (!agents?.length) { el.innerHTML = '<div class="agent-card"><div class="agent-info">No agents</div></div>'; return; }
+            const initials = n => n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+            el.innerHTML = agents.map(a => {
+                const sc = a.status==='idle'?'status-idle':(a.status==='error'?'status-error':(a.status==='working'?'status-working':'status-thinking'));
+                return `<div class="agent-card">
+                    <div class="agent-avatar">${initials(a.name)}</div>
+                    <div class="agent-info">
+                        <div class="agent-name">${a.name}</div>
+                        <div class="agent-desc">${a.description||'Multi-purpose agent'}</div>
+                        <div class="agent-stats">Exec: ${a.executions} | Fail: ${a.failures} | ${a.model||'N/A'}</div>
+                    </div>
+                    <span class="status-badge ${sc}"><span class="dot"></span>${a.status}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // ── Submit Task ─────────────────────────────────────────
+        async function submitTask() {
+            const title = document.getElementById('task-title').value.trim();
+            const desc = document.getElementById('task-desc').value.trim();
+            const priority = document.getElementById('task-priority').value;
+            const btn = document.getElementById('btn-submit');
+            if (!title || !desc) { alert('Enter title and description'); return; }
+            btn.disabled = true;
+            try {
+                const r = await fetch(`${API_BASE}/api/tasks`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, description: desc, priority })
+                });
+                const d = await r.json();
+                if (d.run_id) {
+                    log(`Task submitted: ${d.run_id}`, 'success');
+                    document.getElementById('task-title').value = '';
+                    document.getElementById('task-desc').value = '';
+                    addRun({ run_id: d.run_id, title, status: 'PENDING', created_at: new Date().toISOString() });
+                    openSSE(d.run_id);
+                }
+            } catch (e) { log(`Submit error: ${e.message}`, 'error'); }
+            btn.disabled = false;
+        }
+
+        // ── Runs ─────────────────────────────────────────────────
+        function addRun(run) {
+            const existing = runs.find(r => r.run_id === run.run_id);
+            if (existing) Object.assign(existing, run); else { runs.unshift(run); if (runs.length > 15) runs.pop(); }
+            renderRuns();
+        }
+
+        function renderRuns() {
+            const el = document.getElementById('runs-list');
+            if (!runs.length) { el.innerHTML = '<div class="run-empty">Awaiting mission dispatch...</div>'; return; }
+            el.innerHTML = runs.map(r => `<div class="run-item">
+                <div><div class="run-title">${r.title||'Untitled'}</div><div class="run-meta">${r.run_id} &bull; ${new Date(r.created_at).toLocaleTimeString()}</div></div>
+                <span class="run-status ${r.status}">${r.status}</span>
+            </div>`).join('');
+        }
+
+        // ── SSE ──────────────────────────────────────────────────
+        function openSSE(runId) {
+            const es = new EventSource(`${API_BASE}/api/tasks/${runId}/stream`);
+            es.onmessage = (e) => {
+                const d = JSON.parse(e.data);
+                if (d.event === 'timeout') { es.close(); return; }
+                const c = d.completed ? 'success' : (d.error ? 'error' : 'active');
+                log(`[SSE ${runId.slice(0,6)}] ${d.event} node=${d.node||'-'}`, c);
+                addRun({ run_id: runId, status: d.completed ? 'COMPLETED' : (d.error ? 'ERROR' : 'RUNNING') });
+            };
+            es.onerror = () => es.close();
+        }
+
+        // ── Logger ───────────────────────────────────────────────
+        function log(text, type) {
+            const el = document.getElementById('live-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type||'active'}`;
+            const ts = new Date().toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            entry.textContent = `[${ts}] ${text}`;
+            el.appendChild(entry);
+            el.scrollTop = el.scrollHeight;
+            while (el.children.length > 80) el.removeChild(el.firstChild);
+        }
+    </script>
+</body>
+</html>
