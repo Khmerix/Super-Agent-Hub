@@ -30,13 +30,14 @@ class MissionState:
 
     def __init__(self, run_id: str, title: str, description: str,
                  stage: str = "init", research: str = "", code: str = "",
-                 plan: list = None, completed: list = None):
+                 kimi_output: str = "", plan: list = None, completed: list = None):
         self.run_id = run_id
         self.title = title
         self.description = description
-        self.stage = stage           # init → plan → research → code → review → done
+        self.stage = stage           # init → plan → research → code → kimi → review → done
         self.research = research
         self.code = code
+        self.kimi_output = kimi_output
         self.plan = plan or []
         self.completed = completed or []
         self.error = None
@@ -46,6 +47,7 @@ class MissionState:
             "run_id": self.run_id, "title": self.title,
             "description": self.description, "stage": self.stage,
             "research": self.research, "code": self.code,
+            "kimi_output": self.kimi_output,
             "plan": self.plan, "completed": self.completed,
             "error": self.error
         }
@@ -56,6 +58,7 @@ class MissionState:
         s.stage = data.get("stage", "init")
         s.research = data.get("research", "")
         s.code = data.get("code", "")
+        s.kimi_output = data.get("kimi_output", "")
         s.plan = data.get("plan", [])
         s.completed = data.get("completed", [])
         s.error = data.get("error")
@@ -128,14 +131,15 @@ class SuperAgent:
     async def perform_mission(self, title: str, description: str) -> dict:
         """
         Full async mission loop with broadcast + checkpointing.
-        
+
         Flow:
             1. Broadcast: "Initializing mission"
             2. PLAN       → checkpoint #1
             3. RESEARCH   → checkpoint #2 (after Perplexity)
             4. CODE       → checkpoint #3 (after Claude)
-            5. DONE       → final checkpoint
-        
+            5. KIMI       → checkpoint #4 (after Kimi K2.6 universal)
+            6. DONE       → final checkpoint
+
         Type REVERT in the terminal to roll back to any checkpoint.
         """
         run_id = str(uuid.uuid4())[:8]
@@ -160,7 +164,7 @@ class SuperAgent:
                 await self.minion_speak("RESEARCHER", f"Searching the web for '{title}'...", "magenta")
 
                 # SYNC call to MinionPool (API is blocking)
-                state.research = self.pool.ask_researcher(description)
+                state.research = self.pool.ask_perplexity(description)
 
                 state.stage = "research"
                 state.completed.append("research")
@@ -176,7 +180,7 @@ class SuperAgent:
                 await self.minion_speak("DEVELOPER", f"Writing implementation for '{title}'...", "cyan")
 
                 # SYNC call with research as context
-                state.code = self.pool.ask_coder(task=description, context=state.research)
+                state.code = self.pool.ask_claude(task=description, context=state.research)
 
                 state.stage = "code"
                 state.completed.append("code")
@@ -186,18 +190,39 @@ class SuperAgent:
                 # CHECKPOINT after code
                 await self._checkpoint(state, step_num=3, node_name="code")
 
-            # ── PHASE 4: Review & Closeout ─────────────────────
+            # ── PHASE 4: Kimi K2.6 (Universal) ─────────────────
+            if "kimi" in state.plan:
+                await self.speak("Deploying Kimi K2.6 Universal Minion...", "cyan")
+                await self.minion_speak("KIMI", f"Running unified analysis + build for '{title}'...", "yellow")
+
+                # Kimi handles everything — research + code in one
+                state.kimi_output = self.pool.ask_kimi(
+                    f"Task: {description}\nResearch thoroughly and then implement.",
+                    mode="auto",
+                    context=state.research
+                )
+
+                state.stage = "kimi"
+                state.completed.append("kimi")
+                await self.minion_speak("KIMI", f"Universal output complete: {len(state.kimi_output)} chars.", "yellow")
+                await self.speak("Kimi universal phase complete.", "green")
+
+                # CHECKPOINT after kimi
+                await self._checkpoint(state, step_num=4, node_name="kimi")
+
+            # ── PHASE 5: Review & Closeout ─────────────────────
             await self.speak("Reviewing outputs...", "yellow")
             state.stage = "done"
             await self.speak("Mission Accomplished. Logs saved to SQLite.", "green")
-            await self._checkpoint(state, step_num=4, node_name="done")
+            await self._checkpoint(state, step_num=5, node_name="done")
 
             await self.recorder.update_run_status(run_id, "COMPLETED", state.snapshot())
 
             return {
                 "run_id": run_id, "title": title, "success": True,
                 "research": state.research, "code": state.code,
-                "plan": state.plan, "checkpoints": 4
+                "kimi_output": state.kimi_output,
+                "plan": state.plan, "checkpoints": 5
             }
 
         except Exception as e:
@@ -215,6 +240,8 @@ class SuperAgent:
             stages.append("research")
         if any(k in d for k in ["build", "create", "implement", "code", "write", "fix", "debug", "develop", "boilerplate"]):
             stages.append("code")
+        if any(k in d for k in ["kimi", "moonshot", "universal", "all-in-one", "single agent"]):
+            stages.append("kimi")
         return stages or ["code"]
 
     # ── Backward-compatible API ────────────────────────────────
@@ -233,7 +260,11 @@ class SuperAgent:
             {"agent_id": "minion_perplexity", "name": "Minion Perplexity",
              "status": "idle" if ready["perplexity"] else "error",
              "description": "Research specialist", "executions": 0, "failures": 0,
-             "model": "sonar-pro"}
+             "model": "sonar-pro"},
+            {"agent_id": "minion_kimi", "name": "Minion Kimi",
+             "status": "idle" if ready["kimi"] else "error",
+             "description": "Universal specialist (research + code)", "executions": 0, "failures": 0,
+             "model": "kimi-k2.6"}
         ]
         return [a for a in agents if a["agent_id"] == agent_id] if agent_id else agents
 

@@ -7,11 +7,8 @@ Usage:
 
 Requires ANTHROPIC_API_KEY and PERPLEXITY_API_KEY in .env or environment.
 """
-from pathlib import Path
 from dotenv import load_dotenv
-
-# Resolve .env relative to this file, not the CWD — works regardless of where the server is launched from
-load_dotenv(Path(__file__).parent.parent / ".env")
+load_dotenv()  # Load .env file BEFORE any imports that use env vars
 
 import uvicorn
 from super_agent_hub.api.server import create_app

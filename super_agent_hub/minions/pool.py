@@ -1,12 +1,15 @@
 """
-MinionPool — Direct API layer for Claude and Perplexity.
+MinionPool — Direct API layer for Claude, Perplexity, AND Kimi K2.6.
 Every call is automatically logged to SQLite.
 
 Usage:
     from minions.pool import MinionPool
     pool = MinionPool()
-    research = pool.ask_researcher("Compare vector databases for RAG")
-    code = pool.ask_coder("Build a FastAPI auth module", context=research)
+
+    # Choose your agent:
+    research = pool.ask_perplexity("Compare vector databases for RAG")
+    code = pool.ask_claude("Build a FastAPI auth module", context=research)
+    unified = pool.ask_kimi("Do both research and code", context=research)
 """
 import os
 import sqlite3
@@ -27,10 +30,11 @@ except ImportError:
 
 class MinionPool:
     """
-    Two-minion API pool:
+    Three-minion API pool:
       - Perplexity (sonar-pro) → research, facts, comparisons
       - Claude (claude-3-7-sonnet-20250219) → code, architecture, implementation
-    
+      - Kimi K2.6 (kimi-k2.6) → universal: code + research + reasoning
+
     Every call is auto-logged to super_agent.db via _log_action().
     """
 
@@ -38,8 +42,10 @@ class MinionPool:
         self.db_path = db_path
         self._claude_ready = False
         self._perplexity_ready = False
+        self._kimi_ready = False
         self._claude = None
         self._perplexity = None
+        self._kimi = None
         self._init_db()
         self._connect()
 
@@ -83,7 +89,7 @@ class MinionPool:
                     model: str = "", metadata: Optional[dict] = None):
         """
         Your original logger — enhanced with tokens, model, metadata.
-        Every ask_researcher / ask_coder call auto-logs here.
+        Every ask_* call auto-logs here.
         """
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
@@ -104,65 +110,54 @@ class MinionPool:
         conn.close()
 
     def _connect(self):
-        """Initialize both API clients from environment keys."""
+        """Initialize all API clients from environment keys."""
+        # Claude
         claude_key = os.getenv("ANTHROPIC_API_KEY")
         if Anthropic and claude_key:
             try:
                 self._claude = Anthropic(api_key=claude_key)
                 self._claude_ready = True
+                print("[MinionPool] Claude connected")
             except Exception as e:
                 print(f"[MinionPool] Claude init failed: {e}")
         else:
             print("[MinionPool] Claude: set ANTHROPIC_API_KEY + pip install anthropic")
 
+        # Perplexity
         pplx_key = os.getenv("PERPLEXITY_API_KEY")
         if OpenAI and pplx_key:
             try:
                 self._perplexity = OpenAI(api_key=pplx_key, base_url="https://api.perplexity.ai")
                 self._perplexity_ready = True
+                print("[MinionPool] Perplexity connected")
             except Exception as e:
                 print(f"[MinionPool] Perplexity init failed: {e}")
         else:
             print("[MinionPool] Perplexity: set PERPLEXITY_API_KEY + pip install openai")
 
+        # Kimi
+        kimi_key = os.getenv("MOONSHOT_API_KEY")
+        if OpenAI and kimi_key:
+            try:
+                self._kimi = OpenAI(api_key=kimi_key, base_url="https://api.moonshot.ai/v1")
+                self._kimi_ready = True
+                print("[MinionPool] Kimi K2.6 connected")
+            except Exception as e:
+                print(f"[MinionPool] Kimi init failed: {e}")
+        else:
+            print("[MinionPool] Kimi: set MOONSHOT_API_KEY + pip install openai")
+
     @property
     def ready(self) -> dict:
-        return {"claude": self._claude_ready, "perplexity": self._perplexity_ready}
+        return {
+            "claude": self._claude_ready,
+            "perplexity": self._perplexity_ready,
+            "kimi": self._kimi_ready
+        }
 
-    # ── Public API ─────────────────────────────────────────────
+    # ── Claude API ─────────────────────────────────────────────
 
-    def ask_researcher(self, prompt: str) -> str:
-        """Perplexity: The minion that finds facts. Auto-logged."""
-        if not self._perplexity_ready:
-            output = (
-                "[MOCK RESEARCH OUTPUT]\n\n"
-                "No Perplexity API key configured.\n"
-                "Set PERPLEXITY_API_KEY to enable live research.\n\n"
-                "Mock result: Based on current industry trends, the recommended approach "
-                "involves microservices architecture with containerized deployments."
-            )
-            self._log_action("perplexity", prompt, output, status="mock")
-            return output
-
-        try:
-            response = self._perplexity.chat.completions.create(
-                model="sonar-pro",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-                max_tokens=4096
-            )
-            output = response.choices[0].message.content
-            tokens = response.usage.total_tokens if response.usage else 0
-
-            self._log_action("perplexity", prompt, output,
-                           status="success", tokens_used=tokens, model="sonar-pro")
-            return output
-
-        except Exception as e:
-            self._log_action("perplexity", prompt, str(e), status="error")
-            return f"[Perplexity Error: {e}]"
-
-    def ask_coder(self, task: str, context: str = "") -> str:
+    def ask_claude(self, task: str, context: str = "") -> str:
         """Claude: The minion that writes the code. Auto-logged."""
         if not self._claude_ready:
             output = (
@@ -195,10 +190,102 @@ class MinionPool:
             self._log_action("claude", task, str(e), status="error")
             return f"[Claude Error: {e}]"
 
-    def run_hybrid(self, task: str, prompt: str) -> dict:
+    # ── Perplexity API ───────────────────────────────────────
+
+    def ask_perplexity(self, prompt: str) -> str:
+        """Perplexity: The minion that finds facts. Auto-logged."""
+        if not self._perplexity_ready:
+            output = (
+                "[MOCK RESEARCH OUTPUT]\n\n"
+                "No Perplexity API key configured.\n"
+                "Set PERPLEXITY_API_KEY to enable live research.\n\n"
+                "Mock result: Based on current industry trends, the recommended approach "
+                "involves microservices architecture with containerized deployments."
+            )
+            self._log_action("perplexity", prompt, output, status="mock")
+            return output
+
+        try:
+            response = self._perplexity.chat.completions.create(
+                model="sonar-pro",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=4096
+            )
+            output = response.choices[0].message.content
+            tokens = response.usage.total_tokens if response.usage else 0
+
+            self._log_action("perplexity", prompt, output,
+                           status="success", tokens_used=tokens, model="sonar-pro")
+            return output
+
+        except Exception as e:
+            self._log_action("perplexity", prompt, str(e), status="error")
+            return f"[Perplexity Error: {e}]"
+
+    # ── Kimi API ─────────────────────────────────────────────
+
+    def ask_kimi(self, prompt: str, mode: str = "auto", context: str = "") -> str:
         """
-        Full pipeline: Perplexity researches → Claude implements.
-        Logs each step + the combined run.
+        Kimi K2.6: Universal minion — research, code, or both.
+
+        Args:
+            prompt: The task or question
+            mode: "auto", "code", or "research"
+            context: Optional context from previous agents
+        """
+        if not self._kimi_ready:
+            output = (
+                "[MOCK KIMI OUTPUT]\n\n"
+                "No Kimi API key configured.\n"
+                "Set MOONSHOT_API_KEY to enable live Kimi inference.\n\n"
+                f"# Mock: {prompt[:50]}...\n"
+                "# Provide MOONSHOT_API_KEY for real Kimi K2.6."
+            )
+            self._log_action("kimi", prompt, output, status="mock")
+            return output
+
+        try:
+            # Build system prompt based on mode
+            if mode == "code":
+                system = "You are an expert software engineer. Write clean, tested, documented code."
+            elif mode == "research":
+                system = "You are a research analyst. Cite sources, be thorough, flag uncertainties."
+            else:
+                system = "You are a universal AI assistant. You can code, research, analyze, and build."
+
+            messages = [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt}
+            ]
+
+            if context:
+                messages.insert(1, {"role": "user", "content": f"Context: {context}"})
+
+            response = self._kimi.chat.completions.create(
+                model="kimi-k2.6",
+                messages=messages,
+                temperature=0.2 if mode == "research" else 0.1,
+                max_tokens=4096
+            )
+            output = response.choices[0].message.content
+            tokens = response.usage.total_tokens if response.usage else 0
+
+            self._log_action("kimi", prompt, output,
+                           status="success", tokens_used=tokens,
+                           model="kimi-k2.6",
+                           metadata={"mode": mode, "had_context": bool(context)})
+            return output
+
+        except Exception as e:
+            self._log_action("kimi", prompt, str(e), status="error")
+            return f"[Kimi Error: {e}]"
+
+    # ── Hybrid Pipelines ─────────────────────────────────────
+
+    def run_hybrid_claude_perplexity(self, task: str, prompt: str) -> dict:
+        """
+        Original pipeline: Perplexity researches → Claude implements.
         """
         run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         conn = sqlite3.connect(self.db_path)
@@ -210,13 +297,9 @@ class MinionPool:
         conn.commit()
         conn.close()
 
-        # Step 1: Research (always calls — mock mode handles missing keys)
-        research = self.ask_researcher(f"Research for: {prompt}")
+        research = self.ask_perplexity(f"Research for: {prompt}")
+        code = self.ask_claude(task=task, context=research)
 
-        # Step 2: Code with research context (always calls)
-        code = self.ask_coder(task=task, context=research)
-
-        # Mark complete
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         c.execute(
@@ -232,6 +315,63 @@ class MinionPool:
             "research": research,
             "code": code,
             "success": bool(code and not code.startswith("["))
+        }
+
+    def run_hybrid_kimi(self, task: str, prompt: str) -> dict:
+        """
+        New pipeline: Kimi handles everything — research + code in one.
+        """
+        run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute(
+            "INSERT INTO runs (run_id, timestamp, title, description, status) VALUES (?, ?, ?, ?, ?)",
+            (run_id, datetime.now().isoformat(), task, prompt, "running")
+        )
+        conn.commit()
+        conn.close()
+
+        # Kimi does research first
+        research = self.ask_kimi(f"Research this thoroughly: {prompt}", mode="research")
+        # Then Kimi codes with that context
+        code = self.ask_kimi(f"Implement: {task}", mode="code", context=research)
+
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute(
+            "UPDATE runs SET status=?, research_output=?, code_output=?, completed_at=? WHERE run_id=?",
+            ("completed", research[:2000], code[:2000], datetime.now().isoformat(), run_id)
+        )
+        conn.commit()
+        conn.close()
+
+        return {
+            "run_id": run_id,
+            "task": task,
+            "research": research,
+            "code": code,
+            "success": bool(code and not code.startswith("["))
+        }
+
+    def run_all_agents(self, task: str, prompt: str) -> dict:
+        """
+        Run ALL three agents and compare results.
+        Best for validation and ensemble reasoning.
+        """
+        run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Run all in parallel (simulated — in async you'd use asyncio.gather)
+        perplexity_result = self.ask_perplexity(prompt)
+        claude_result = self.ask_claude(task, context=perplexity_result)
+        kimi_result = self.ask_kimi(prompt, mode="auto", context=perplexity_result)
+
+        return {
+            "run_id": run_id,
+            "task": task,
+            "perplexity": perplexity_result,
+            "claude": claude_result,
+            "kimi": kimi_result,
+            "ensemble": f"Perplexity research + Claude code + Kimi unified analysis"
         }
 
     # ── Query helpers ──────────────────────────────────────────

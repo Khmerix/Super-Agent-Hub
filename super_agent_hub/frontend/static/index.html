@@ -311,8 +311,9 @@
 
         // ── WebSocket ────────────────────────────────────────────
         function initWebSocket() {
-            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${proto}//${window.location.host}/ws`);
+                // Always use plain ws:// for localhost (server has no TLS)
+            const wsUrl = 'ws://' + window.location.host + '/ws';
+            ws = new WebSocket(wsUrl);
             ws.onopen = () => {
                 document.getElementById('conn-status').textContent = 'WS: CONNECTED';
                 document.getElementById('conn-status').style.color = '#22c55e';
@@ -320,12 +321,31 @@
                 ws.send(JSON.stringify({ action: 'status' }));
             };
             ws.onmessage = (evt) => {
-                const msg = JSON.parse(evt.data);
-                if (msg.type === 'agents') renderAgents(msg.data);
-                else if (msg.event) {
-                    const c = msg.error ? 'error' : (msg.completed ? 'success' : 'active');
-                    log(`[${msg.event}] run=${msg.run_id?.slice(0,6)||'-'} node=${msg.node||'-'}`, c);
-                    if (msg.completed) loadRuns();
+                const text = evt.data;
+                // Try JSON first (structured events)
+                try {
+                    const msg = JSON.parse(text);
+                    if (msg.type === 'agents') renderAgents(msg.data);
+                    else if (msg.event) {
+                        const c = msg.error ? 'error' : (msg.completed ? 'success' : 'active');
+                        log(`[${msg.event}] run=${msg.run_id?.slice(0,6)||'-'} node=${msg.node||'-'}`, c);
+                        if (msg.completed) loadRuns();
+                    } else if (msg.type === 'submitted') {
+                        log(`Task submitted: ${msg.run_id}`, 'success');
+                    }
+                    return;
+                } catch {}
+                // Plain text: agent chat broadcast
+                if (text.startsWith('[') && text.includes(']:')) {
+                    // Strip ANSI codes for display
+                    const clean = text.replace(/\x1b\[[0-9;]*m/g, '');
+                    if (clean.includes('[COMMANDER]') || clean.includes('[BOSS]')) log(clean, 'active');
+                    else if (clean.includes('[PERPLEXITY]') || clean.includes('[RESEARCHER]')) log(clean, 'active');
+                    else if (clean.includes('[CLAUDE]') || clean.includes('[DEVELOPER]')) log(clean, 'success');
+                    else if (clean.includes('[SYSTEM]')) log(clean, 'success');
+                    else log(clean, 'active');
+                } else {
+                    log(text, 'active');
                 }
             };
             ws.onclose = () => {

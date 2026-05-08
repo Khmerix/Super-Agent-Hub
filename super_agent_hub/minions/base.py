@@ -39,7 +39,7 @@ class MinionAgent(ABC):
     
     Status lifecycle:
         IDLE -> THINKING -> WORKING -> IDLE
-                          \-> ERROR
+                          \\-> ERROR
     """
 
     def __init__(self, agent_id: str, name: str, description: str = ""):

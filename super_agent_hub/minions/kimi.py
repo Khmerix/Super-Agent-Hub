@@ -1,6 +1,7 @@
 """
-Minion_Claude - Coding specialist with tool-augmented reasoning.
-Wraps Anthropic Claude API. Set api_key via configure() before use.
+Minion_Kimi — Universal agent powered by Moonshot Kimi K2.6.
+Replaces both Claude (coding) and Perplexity (research) with a single minion.
+Uses OpenAI-compatible API: base_url="https://api.moonshot.ai/v1"
 """
 import os
 import json
@@ -12,8 +13,8 @@ from ..core.state_graph import AgentStatus
 
 console = Console()
 
-# Tool definitions for Claude (Anthropic tool use / OpenAI function calling style)
-CLAUDE_TOOLS = [
+# Tool definitions for Kimi (OpenAI function-calling format)
+KIMI_TOOLS = [
     {
         "type": "function",
         "function": {
@@ -94,76 +95,85 @@ CLAUDE_TOOLS = [
 ]
 
 
-class MinionClaude(MinionAgent):
+class MinionKimi(MinionAgent):
     """
-    Claude-3.5/4 coding specialist.
-    
+    Kimi K2.6 universal specialist — coding + research in one minion.
+
     Configuration (call before use):
         minion.configure(
-            api_key="sk-ant-...",
-            model="claude-3-5-sonnet-20241022",
+            api_key="sk-...",
+            model="kimi-k2.6",           # or "kimi-k2.5", "kimi-k2-thinking"
             max_iterations=25,
-            working_dir="./workspace"
+            working_dir="./workspace",
+            mode="auto"                  # "code", "research", or "auto"
         )
-    
-    Status transitions during execution:
+
+    Status transitions:
         THINKING -> (reasoning) -> WORKING -> (tool calls) -> THINKING -> ... -> IDLE
     """
 
     def __init__(self, working_dir: str = "./workspace"):
         super().__init__(
-            agent_id="minion_claude",
-            name="Minion Claude",
-            description="Coding specialist: generation, debugging, file ops, architecture"
+            agent_id="minion_kimi",
+            name="Minion Kimi",
+            description="Universal specialist: coding, research, file ops, architecture, web search"
         )
-        self._model = "claude-3-5-sonnet-20241022"
+        self._model = "kimi-k2.6"
         self._max_iterations = 25
         self._working_dir = working_dir
+        self._mode = "auto"  # "code", "research", "auto"
         self._client: Any = None
 
     def configure(self, api_key: Optional[str] = None, **kwargs) -> None:
-        super().configure(api_key or os.getenv("ANTHROPIC_API_KEY", ""), **kwargs)
+        super().configure(api_key or os.getenv("MOONSHOT_API_KEY", ""), **kwargs)
         if "model" in kwargs:
             self._model = kwargs["model"]
         if "max_iterations" in kwargs:
             self._max_iterations = kwargs["max_iterations"]
         if "working_dir" in kwargs:
             self._working_dir = kwargs["working_dir"]
+        if "mode" in kwargs:
+            self._mode = kwargs["mode"]
 
     async def warmup(self) -> bool:
         """Validate API key by making a tiny test request."""
         if not self._api_key:
-            console.print("[yellow]MinionClaude: no API key configured[/yellow]")
+            console.print("[yellow]MinionKimi: no API key configured[/yellow]")
             return False
 
         try:
-            import anthropic
-            self._client = anthropic.AsyncAnthropic(api_key=self._api_key)
+            from openai import AsyncOpenAI
+            self._client = AsyncOpenAI(
+                api_key=self._api_key,
+                base_url="https://api.moonshot.ai/v1"
+            )
             # Minimal validation call
-            await self._client.messages.create(
-                model=self._model, max_tokens=10,
+            await self._client.chat.completions.create(
+                model=self._model,
+                max_tokens=10,
                 messages=[{"role": "user", "content": "ping"}]
             )
-            console.print(f"[green]MinionClaude ready ({self._model})[/green]")
+            console.print(f"[green]MinionKimi ready ({self._model})[/green]")
             return True
         except ImportError:
-            console.print("[red]Install anthropic SDK: pip install anthropic[/red]")
+            console.print("[red]Install openai SDK: pip install openai[/red]")
             return False
         except Exception as e:
-            console.print(f"[red]MinionClaude warmup failed: {e}[/red]")
+            console.print(f"[red]MinionKimi warmup failed: {e}[/red]")
             return False
 
     async def execute(self, prompt: str, context: Optional[Dict] = None,
                       task_id: Optional[str] = None) -> MinionResult:
         """
         Execute with tool-augmented loop.
-        When api_key is missing, returns a mock structure showing what would happen.
+        When api_key is missing, returns a mock structure for integration testing.
         """
         if not self._api_key or not self._client:
-            # ── MOCK MODE ── Returns a realistic mock for integration testing
             return self._mock_execute(prompt, context, task_id)
 
-        # ── REAL MODE ── Full tool loop against Anthropic API
+        # Determine system prompt based on mode
+        system_prompt = self._system_prompt()
+
         messages: List[Dict[str, Any]] = [
             {"role": "user", "content": prompt}
         ]
@@ -179,49 +189,77 @@ class MinionClaude(MinionAgent):
         for iteration in range(self._max_iterations):
             await self.set_status(AgentStatus.THINKING)
 
-            response = await self._client.messages.create(
+            response = await self._client.chat.completions.create(
                 model=self._model,
                 max_tokens=4096,
-                system=self._system_prompt(),
                 messages=messages,
-                tools=CLAUDE_TOOLS,
-                tool_choice={"type": "auto"}
+                tools=KIMI_TOOLS,
+                tool_choice="auto"
             )
 
-            total_tokens["input"] += response.usage.input_tokens
-            total_tokens["output"] += response.usage.output_tokens
+            if response.usage:
+                total_tokens["input"] += response.usage.prompt_tokens or 0
+                total_tokens["output"] += response.usage.completion_tokens or 0
 
             has_tool_use = False
             tool_results = []
+            assistant_content = []
 
-            for block in response.content:
-                if block.type == "text":
-                    all_output.append(block.text)
-                elif block.type == "tool_use":
-                    has_tool_use = True
+            msg = response.choices[0].message
+
+            # Handle text content
+            if msg.content:
+                all_output.append(msg.content)
+                assistant_content.append({"type": "text", "text": msg.content})
+
+            # Handle tool calls
+            if msg.tool_calls:
+                has_tool_use = True
+                for tool_call in msg.tool_calls:
                     await self.set_status(AgentStatus.WORKING)
-                    result = await self._run_tool(block.name, block.input)
+                    tool_name = tool_call.function.name
+                    tool_input = json.loads(tool_call.function.arguments)
+                    result = await self._run_tool(tool_name, tool_input)
                     tool_call_log.append({
-                        "tool": block.name,
-                        "input": block.input,
+                        "tool": tool_name,
+                        "input": tool_input,
                         "output": result
                     })
                     tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
+                        "tool_call_id": tool_call.id,
+                        "role": "tool",
+                        "name": tool_name,
                         "content": json.dumps(result)
                     })
-                    if block.name in ("read_file", "write_file"):
-                        artifacts[block.input.get("path", "artifact")] = result
+                    if tool_name in ("read_file", "write_file"):
+                        artifacts[tool_input.get("path", "artifact")] = result
 
             if not has_tool_use:
                 break
 
+            # Add assistant message with tool calls
             messages.append({
                 "role": "assistant",
-                "content": [b.model_dump() if hasattr(b, "model_dump") else b for b in response.content]
+                "content": assistant_content if assistant_content else None,
+                "tool_calls": [
+                    {
+                        "id": tc.id,
+                        "type": tc.type,
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments
+                        }
+                    } for tc in msg.tool_calls
+                ] if msg.tool_calls else None
             })
-            messages.append({"role": "user", "content": tool_results})
+
+            # Add tool results
+            for tr in tool_results:
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tr["tool_call_id"],
+                    "content": tr["content"]
+                })
 
         return MinionResult(
             success=True,
@@ -235,14 +273,34 @@ class MinionClaude(MinionAgent):
     # ── Internal helpers ─────────────────────────────────────
 
     def _system_prompt(self) -> str:
-        return (
-            "You are an expert software engineer with file system and shell access.\n"
-            "Rules:\n"
-            "- Prefer small, focused functions\n"
-            "- Add error handling\n"
-            "- Write tests where appropriate\n"
-            f"Working directory: {self._working_dir}"
-        )
+        mode = self._mode
+        if mode == "code":
+            return (
+                "You are an expert software engineer with file system and shell access.\n"
+                "Rules:\n"
+                "- Prefer small, focused functions\n"
+                "- Add error handling\n"
+                "- Write tests where appropriate\n"
+                f"Working directory: {self._working_dir}"
+            )
+        elif mode == "research":
+            return (
+                "You are a research analyst with real-time knowledge access.\n"
+                "Rules:\n"
+                "- Cite sources with [1], [2], etc.\n"
+                "- Prioritize authoritative, recent sources\n"
+                "- Flag uncertainties\n"
+                "- Be concise but thorough"
+            )
+        else:  # auto
+            return (
+                "You are a universal AI assistant with file system and shell access.\n"
+                "You can write code, research topics, analyze data, and build projects.\n"
+                "Rules:\n"
+                "- For coding: prefer small functions, add error handling, write tests\n"
+                "- For research: cite sources, flag uncertainties, be thorough\n"
+                f"Working directory: {self._working_dir}"
+            )
 
     def _format_context(self, previous_results: List[Dict]) -> str:
         parts = ["Context from earlier work:"]
@@ -252,7 +310,6 @@ class MinionClaude(MinionAgent):
         return "\n".join(parts)
 
     async def _run_tool(self, name: str, params: Dict) -> Dict:
-        # Tool implementations (same as previous build)
         from pathlib import Path
         import asyncio, subprocess
 
@@ -274,7 +331,10 @@ class MinionClaude(MinionAgent):
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     cwd=self._working_dir
                 )
-                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=params.get("timeout", 30))
+                stdout, stderr = await asyncio.wait_for(
+                    proc.communicate(),
+                    timeout=params.get("timeout", 30)
+                )
                 return {
                     "returncode": proc.returncode,
                     "stdout": stdout.decode(errors="replace"),
@@ -292,13 +352,13 @@ class MinionClaude(MinionAgent):
                       task_id: Optional[str]) -> MinionResult:
         """Return a realistic mock result when API key is unavailable."""
         mock_output = (
-            f"[MOCK Claude Output]\n"
+            f"[MOCK Kimi K2.6 Output]\n"
             f"Task ID: {task_id}\n"
             f"Received prompt ({len(prompt)} chars): {prompt[:120]}...\n\n"
-            "This is a MOCK response. To enable real Claude inference:\n"
-            "  1. Set ANTHROPIC_API_KEY environment variable, or\n"
-            "  2. Call minion.configure(api_key='sk-ant-...')\n\n"
-            "When live, Claude will use these tools:\n"
+            "This is a MOCK response. To enable real Kimi inference:\n"
+            "  1. Set MOONSHOT_API_KEY environment variable, or\n"
+            "  2. Call minion.configure(api_key='sk-...')\n\n"
+            "When live, Kimi K2.6 will use these tools:\n"
             "  - read_file / write_file / list_directory\n"
             "  - execute_command / search_code\n"
         )

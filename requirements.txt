@@ -6,3 +6,9 @@ aiosqlite>=0.20.0
 python-dotenv>=1.0.0
 anthropic>=0.30.0
 openai>=1.30.0
+
+# API Keys needed:
+# ANTHROPIC_API_KEY=sk-ant-...     (for Claude)
+# PERPLEXITY_API_KEY=pplx-...      (for Perplexity)
+# MOONSHOT_API_KEY=sk-...          (for Kimi K2.6)
+# Get Kimi key from: https://platform.kimi.ai

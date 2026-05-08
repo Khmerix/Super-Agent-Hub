@@ -25,7 +25,7 @@ class MinionPerplexity(MinionAgent):
     
     Status transitions:
         THINKING -> (search + inference) -> IDLE
-                 \-> ERROR
+                 \\-> ERROR
     """
 
     def __init__(self):

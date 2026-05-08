@@ -5,5 +5,6 @@ from .pool import MinionPool
 # from .base import MinionAgent, MinionResult
 # from .claude import MinionClaude
 # from .perplexity import MinionPerplexity
+# from .kimi import MinionKimi
 
 __all__ = ["MinionPool"]

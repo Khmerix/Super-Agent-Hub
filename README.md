@@ -1,6 +1,7 @@
 # 🤖 Super Agent Hub v2
 
-**LangGraph-style multi-agent orchestration** with checkpoint/rollback, SQLite Flight Recorder, and FastAPI backend ready for Three.js / HTML / CSS frontend integration.
+**LangGraph-style multi-agent orchestration** with checkpoint/rollback, SQLite Flight Recorder, and FastAPI backend.
+Supports Claude, Perplexity, and Kimi K2.6 minions.
 
 ---
 
@@ -15,16 +16,21 @@ super_agent_hub/
 ├── minions/
 │   ├── base.py                  # Abstract MinionAgent with AgentStatus
 │   ├── claude.py                # Minion_Claude (coding specialist)
-│   └── perplexity.py            # Minion_Perplexity (research specialist)
+│   ├── perplexity.py            # Minion_Perplexity (research specialist)
+│   ├── kimi.py                  # Minion_Kimi K2.6 (universal specialist)
+│   └── pool.py                  # Direct API pool for all minions
 ├── recorder/
 │   └── flight_recorder.py       # SQLite audit log (runs, steps, messages, thoughts)
 ├── api/
+│   ├── connection_manager.py    # WebSocket broadcast hub
 │   └── server.py                # FastAPI: REST + SSE + WebSocket
 ├── frontend/static/
-│   ├── index.html               # Frontend bridge (HTML/CSS/JS)
+│   ├── index.html               # Dashboard (HTML/CSS/JS)
+│   ├── terminal.html            # xterm.js terminal
 │   ├── css/style.css
 │   └── js/main.js
-└── main.py                      # Uvicorn entry point
+├── main.py                      # Uvicorn entry point
+└── __init__.py                  # Package init
 ```
 
 ---
@@ -83,11 +89,18 @@ await minion.warmup()
 ## Quick Start
 
 ```bash
+# On Windows PowerShell:
+.\venv\Scripts\Activate.ps1
+
+# On Windows CMD:
+# .\venv\Scripts\activate.bat
+
 pip install -r requirements.txt
 
 # Set keys (optional — mock mode works without them)
-export ANTHROPIC_API_KEY="sk-ant-..."
-export PERPLEXITY_API_KEY="pplx-..."
+$env:ANTHROPIC_API_KEY="sk-ant-..."
+$env:PERPLEXITY_API_KEY="pplx-..."
+$env:MOONSHOT_API_KEY="sk-..."
 
 # Start server
 python -m super_agent_hub.main
@@ -96,6 +109,7 @@ uvicorn super_agent_hub.main:app --reload --port 8000
 ```
 
 Open `http://localhost:8000/` for the frontend dashboard.
+Open `http://localhost:8000/terminal` for the terminal view.
 
 ---
 
@@ -119,33 +133,18 @@ Open `http://localhost:8000/` for the frontend dashboard.
 
 ```python
 import asyncio
-from super_agent_hub.core import Orchestrator, TaskPriority
-from super_agent_hub.minions import MinionClaude, MinionPerplexity
+from super_agent_hub.core import SuperAgent, TaskPriority
 
 async def main():
-    orch = Orchestrator()
+    agent = SuperAgent(name="COMMANDER")
     
-    claude = MinionClaude()
-    claude.configure(api_key="sk-ant-...")
-    await orch.register_minion(claude)
-    
-    perplexity = MinionPerplexity()
-    perplexity.configure(api_key="pplx-...")
-    await orch.register_minion(perplexity)
-    
-    await orch.warmup_all()
-    
-    run_id = await orch.submit_task(
+    run_id = await agent.submit_task(
         title="Build auth API",
         description="Research JWT best practices, then implement FastAPI auth",
         priority=TaskPriority.HIGH
     )
     
-    # Poll or use SSE/WebSocket for updates
-    import time
-    time.sleep(10)
-    
-    status = await orch.get_run_status(run_id)
+    status = await agent.get_run_status(run_id)
     print(status)
 
 asyncio.run(main())
@@ -172,10 +171,12 @@ curl -X POST http://localhost:8000/api/runs/a1b2c3d4/revert \
 The static files in `frontend/static/` provide a ready-to-use dashboard that:
 - Polls agent status every 3s
 - Accepts task submissions via REST
-- Receives live events via WebSocket
+- Receives live events via WebSocket + SSE
 - Displays runs, checkpoints, and logs
 
-Swap in Three.js by replacing `index.html` — all API endpoints remain the same.
+Two views available:
+- `/` — Main dashboard with agent cards, mission dispatch, and telemetry
+- `/terminal` — xterm.js-based terminal with command-line interface (REVERT, status, trace, etc.)
 
 ---
 
